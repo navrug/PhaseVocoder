@@ -1,7 +1,6 @@
 %http://www.ee.columbia.edu/ln/rosa/matlab/pvoc/
 
-11[d,sr]=audioread('clar.wav');
-sr
+[d,sr]=audioread('clar.wav');
 % 1024 samples is about 60 ms at 16kHz, a good window
 y=pvoc(d,.75,1024);
 % Compare original and resynthesis
@@ -29,7 +28,7 @@ soundsc(deep,sr)
 
 %% Pure sound
 sr = 44100;
-T = 2;
+T = 1.6254;
 t = 0:(1/sr):T;
 f = 440;
 a = 1;
@@ -38,7 +37,7 @@ sound(y,sr);
 
 %% Moving pure sound
 sr = 44100;
-T = 0.25;
+T = (80*(1024-128)+128)/44100;
 t = 0:(1/sr):T;
 f_start = 30*44100/1024;
 f_end = 40*44100/1024;
@@ -64,5 +63,50 @@ idx = sub2ind(size(stft_y'), 1:length(max_stft_y), max_stft_y);
 figure();
 plot(1:n_frames,angle(stft_y(idx))); hold on;
 plot(max_stft_y)
+
+
+%% From scratch for alpha = 2
+n=1024;
+hop=128;
+alpha=2;
+
+%% Pure average
+y_spec = stft(y,n,n,hop);
+[n_channels, n_frames] = size(y_spec);
+z_spec = zeros(n_channels, 2*n_frames-1);
+z_spec(:,2*(1:n_frames)-1) = y_spec;
+z_spec(:,2*(1:(n_frames-1))) = 0.5*(y_spec(:,1:(n_frames-1)) + y_spec(:,2:n_frames));
+z = istft(z_spec,n,n,hop);
+sound(z,sr);
+
+%% Average of amplitude, average of phase
+y_spec = stft(y,n,n,hop);
+[n_channels, n_frames] = size(y_spec);
+z_spec = zeros(n_channels, 2*n_frames-1);
+z_spec(:,2*(1:n_frames)-1) = y_spec;
+z_spec(:,2*(1:(n_frames-1))) = 0.5*(abs(y_spec(:,1:(n_frames-1))) + abs(y_spec(:,2:n_frames)));
+angles = 0.5*(angle(y_spec(:,1:(n_frames-1))) + angle(y_spec(:,2:n_frames)));
+z_spec(:,2*(1:(n_frames-1))) = z_spec(:,2*(1:(n_frames-1))) .* exp(1i*angles);
+z = istft(z_spec,n,n,hop);
+sound(z,sr);
+
+
+%% 
+y_spec = stft(y,n,n,hop);
+[n_channels, n_frames] = size(y_spec);
+phi_0 = zeros(n_channels,1);
+Ra = 1/sr;
+Rs = alpha*Ra;
+
+y_angles = angle(y_spec);
+z_angles = alpha * bsxfun(@minus, y_angles, y_angles(:,1));
+z_angles = bsxfun(@plus, z_angles,alpha * y_angles(:,1));
+
+
+
+z_spec = abs(y_spec) .* exp(1i * z_angles);
+
+z = istft(z_spec,n,n,hop);
+sound(z,sr);
 
 
