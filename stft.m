@@ -34,7 +34,7 @@ end
 %win((halff+1):(halff+acthalflen)) = halfwin(1:acthalflen);
 %win((halff+1):-1:(halff-acthalflen+2)) = halfwin(1:acthalflen);
 
-win = 1-cos(2*pi*(1:1024)/1024))
+win = 1-cos(2*pi*(1:(w-1))/w);
 w = length(win);
 % now can set default hop
 if h == 0
